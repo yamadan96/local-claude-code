@@ -14,6 +14,7 @@ from lcc.agent.messages import (
     ToolCall,
 )
 from lcc.agent.prompts import build_system_prompt, format_tool_descriptions
+from lcc.agent.recovery import extract_tool_call_from_text
 from lcc.tools.base import ToolExecutionContext, ToolResult
 from lcc.tools.registry import ToolRegistry
 
@@ -116,10 +117,34 @@ class AgentRunner:
 
             # Check for text-only response (no tool calls)
             if not response.tool_calls:
-                self._conversation.append_assistant(response.content)
-                result.final_text = response.content
-                result.stopped_reason = "natural"
-                return result
+                # Weak-model recovery: attempt to extract a tool call
+                # from the content text (models often emit JSON as prose)
+                extracted = None
+                if response.content:
+                    extracted = extract_tool_call_from_text(
+                        response.content, self._registry.names()
+                    )
+
+                if extracted is None:
+                    # Genuine text-only response
+                    self._conversation.append_assistant(response.content)
+                    result.final_text = response.content
+                    result.stopped_reason = "natural"
+                    return result
+
+                # Synthesize a ToolCall from the extracted content
+                call_id = f"content_extract_{iteration}"
+                synthesized = ToolCall(
+                    id=call_id,
+                    name=extracted.name,
+                    arguments=extracted.arguments,
+                )
+                response.tool_calls = [synthesized]
+                logger.info(
+                    "Recovered tool call from content text: %s(%s)",
+                    extracted.name,
+                    extracted.arguments,
+                )
 
             # Process tool calls
             self._conversation.append_assistant(response.content, response.tool_calls)

@@ -4,7 +4,93 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from typing import Any
+
+
+def extract_tool_call_from_text(
+    content: str,
+    known_tool_names: list[str],
+) -> ToolCallExtraction | None:
+    """Attempt to extract a tool call from assistant content text.
+
+    Weak local models often emit tool calls as fenced JSON in content
+    instead of using the native tool_calls field. This function detects
+    shapes like:
+      {"name": "read_file", "arguments": {"path": "x.txt"}}
+      {"tool": "bash", "arguments": {"command": "ls"}}
+      {"function": "glob", "arguments": {"pattern": "*.py"}}
+    Wrapped in optional markdown fences or surrounding prose.
+
+    Only returns a result if the extracted name matches a registered tool
+    (via fuzzy match), preventing false positives on ordinary JSON in answers.
+    """
+    if not content or not content.strip():
+        return None
+
+    text = _strip_markdown_fences(content.strip())
+    extracted = _extract_first_json_object(text)
+    if extracted is None:
+        return None
+
+    parsed = _try_parse_json(extracted)
+    if parsed is None:
+        return None
+
+    # Accept key variants: "name", "tool", "function"
+    name: str | None = None
+    for key in ("name", "tool", "function"):
+        if key in parsed and isinstance(parsed[key], str):
+            name = parsed[key]
+            break
+
+    if name is None:
+        return None
+
+    # Validate name against registry (with fuzzy match)
+    matched = fuzzy_match_tool_name(name, known_tool_names)
+    if matched is None:
+        return None
+
+    # Extract arguments
+    raw_args = parsed.get("arguments", parsed.get("params", {}))
+    if isinstance(raw_args, str):
+        try:
+            args = json.loads(raw_args)
+        except json.JSONDecodeError:
+            args = {"_raw": raw_args}
+    elif isinstance(raw_args, dict):
+        args = raw_args
+    else:
+        args = {}
+
+    return ToolCallExtraction(name=matched, arguments=args)
+
+
+@dataclass
+class ToolCallExtraction:
+    """Result of extracting a tool call from assistant content text."""
+
+    name: str
+    arguments: dict[str, Any]
+
+
+def _try_parse_json(text: str) -> dict[str, Any] | None:
+    """Try to parse JSON, with common-error fixes as fallback."""
+    try:
+        result = json.loads(text)
+        if isinstance(result, dict):
+            return result
+    except json.JSONDecodeError:
+        pass
+    fixed = _fix_common_json_errors(text)
+    try:
+        result = json.loads(fixed)
+        if isinstance(result, dict):
+            return result
+    except json.JSONDecodeError:
+        pass
+    return None
 
 
 def recover_tool_call_json(raw: str) -> dict[str, Any] | None:

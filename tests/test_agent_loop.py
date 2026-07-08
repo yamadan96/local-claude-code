@@ -240,3 +240,52 @@ class TestE2ESmokeTest:
         assert roles[2] == "assistant"  # tool call
         assert roles[3] == "tool"  # tool result
         assert roles[4] == "assistant"  # final answer
+
+    def test_content_embedded_tool_call(self, tmp_path: Path) -> None:
+        """Weak model emits tool call as JSON in content (no native tool_calls).
+
+        This is the exact bug scenario from qwen2.5-coder: the model returns
+        a fenced JSON block in content instead of using the tool_calls field.
+        The agent should recover the tool call and execute it.
+        """
+        (tmp_path / "notes.txt").write_text(
+            "The mascot of this project is a red panda.\n"
+        )
+
+        responses = [
+            # Model emits tool call as fenced JSON in content (NO tool_calls)
+            ChatResponse(
+                content=(
+                    "```json\n"
+                    '{"name": "read_file", "arguments": {"path": "notes.txt"}}\n'
+                    "```"
+                ),
+                tool_calls=None,
+            ),
+            # After seeing the tool result, model answers
+            ChatResponse(
+                content="The file mentions a red panda as the project mascot."
+            ),
+        ]
+
+        runner = _make_runner(responses, tmp_path)
+        result = runner.run_turn("What animal is in notes.txt?")
+
+        assert result.stopped_reason == "natural"
+        assert "red panda" in result.final_text.lower()
+        assert result.iterations == 2
+        assert len(result.tool_results) == 1
+        assert result.tool_results[0].status == "ok"
+        assert "red panda" in result.tool_results[0].output.lower()
+
+    def test_content_json_not_a_tool_is_final_text(self, tmp_path: Path) -> None:
+        """JSON in content that is NOT a tool call should be passed through."""
+        responses = [
+            ChatResponse(
+                content='Here is your config:\n{"database": "postgres", "port": 5432}'
+            ),
+        ]
+        runner = _make_runner(responses, tmp_path)
+        result = runner.run_turn("Show me the config")
+        assert result.stopped_reason == "natural"
+        assert "postgres" in result.final_text
