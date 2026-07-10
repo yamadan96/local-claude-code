@@ -144,6 +144,48 @@ allow_outside_cwd = false
 - **Output capping**: Tool output is truncated at 100KB to prevent memory issues
 - **Timeouts**: Shell commands have a configurable timeout (default 30s, max 300s)
 
+## Troubleshooting
+
+### `model 'xxx' not found` even though `ollama list` shows it
+
+On macOS, `localhost` can resolve to the IPv6 loopback (`::1`) instead of
+`127.0.0.1`, and other local services (e.g. an editor's bundled model server)
+may also be listening on `::1:11434`. If your request gets routed there
+instead of to your actual Ollama server, you'll see a 404 for a model that
+clearly exists.
+
+Check who is actually listening on the port:
+
+```bash
+lsof -nP -iTCP:11434 -sTCP:LISTEN
+```
+
+If more than one process shows up, point `lcc` at the IPv4 address
+explicitly to avoid the ambiguous `localhost` resolution:
+
+```bash
+uv run lcc --base-url http://127.0.0.1:11434/v1
+```
+
+You can also bake this into `.lcc.toml` / `~/.lcc/config.toml` so you don't
+need the flag every time:
+
+```toml
+base_url = "http://127.0.0.1:11434/v1"
+```
+
+### Model calls tools for simple greetings or refuses general questions
+
+Small local models (e.g. 14B-class) sometimes struggle to distinguish
+"casual chat" from "a task that needs tools," and may invent file operations
+just to have something to do, or refuse to answer general knowledge
+questions because the system prompt frames the assistant narrowly as a
+"coding assistant." This is addressed in the system prompt
+(`src/lcc/agent/prompts.py`) with explicit rules to only call tools for
+concrete in-workspace tasks and to answer general/conceptual questions
+directly. If you still see this with a smaller or more quantized model, try
+a larger model or tighten the system prompt further.
+
 ## Development
 
 ```bash
