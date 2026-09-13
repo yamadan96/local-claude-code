@@ -66,6 +66,15 @@ class AgentRunner:
     def conversation(self) -> ConversationState:
         return self._conversation
 
+    @property
+    def model(self) -> str:
+        """Model name sent with each request."""
+        return self._model
+
+    @model.setter
+    def model(self, value: str) -> None:
+        self._model = value
+
     def _ensure_system_prompt(self) -> None:
         """Set the system prompt if not already done."""
         if self._system_prompt_set:

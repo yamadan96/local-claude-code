@@ -22,10 +22,15 @@ class SlashCommandDispatcher:
         config: Any,
         runner: Any = None,
         registry: Any = None,
+        provider: Any = None,
+        permissions: Any = None,
     ) -> None:
         self._config = config
         self._runner = runner
         self._registry = registry
+        # Runtime objects that must see switches, not just the config snapshot
+        self._provider = provider
+        self._permissions = permissions
         self._commands: dict[str, str] = {
             "/help": "Show available commands",
             "/clear": "Reset conversation history",
@@ -80,6 +85,10 @@ class SlashCommandDispatcher:
         if not arg:
             return SlashCommandResult(output=f"Current model: {self._config.model}")
         self._config.model = arg
+        if self._runner is not None:
+            self._runner.model = arg
+        if self._provider is not None:
+            self._provider.model = arg
         return SlashCommandResult(output=f"Model switched to: {arg}")
 
     def _cmd_base_url(self, arg: str) -> SlashCommandResult:
@@ -88,6 +97,8 @@ class SlashCommandDispatcher:
                 output=f"Current base URL: {self._config.base_url}"
             )
         self._config.base_url = arg
+        if self._provider is not None:
+            self._provider.base_url = arg
         return SlashCommandResult(output=f"Base URL switched to: {arg}")
 
     def _cmd_permission(self, arg: str) -> SlashCommandResult:
@@ -100,6 +111,8 @@ class SlashCommandDispatcher:
         try:
             mode = PermissionMode(arg.lower())
             self._config.permission_mode = mode
+            if self._permissions is not None:
+                self._permissions.mode = mode
             return SlashCommandResult(
                 output=f"Permission mode switched to: {mode.value}"
             )

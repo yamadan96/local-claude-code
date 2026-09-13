@@ -52,6 +52,24 @@ class OpenAICompatProvider:
         self._timeout = timeout
         self._client = http_client or httpx.Client(timeout=timeout)
 
+    @property
+    def model(self) -> str:
+        """Default model used when a request does not specify one."""
+        return self._model
+
+    @model.setter
+    def model(self, value: str) -> None:
+        self._model = value
+
+    @property
+    def base_url(self) -> str:
+        """Endpoint base URL (without trailing slash)."""
+        return self._base_url
+
+    @base_url.setter
+    def base_url(self, value: str) -> None:
+        self._base_url = value.rstrip("/")
+
     def complete(self, request: ChatRequest) -> ChatResponse:
         """Send a chat completion request to the OpenAI-compatible endpoint."""
         payload = self._build_payload(request)
