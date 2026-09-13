@@ -2,6 +2,8 @@
 
 A local-first AI coding agent powered by local LLMs via OpenAI-compatible APIs (Ollama, LM Studio, vLLM).
 
+> This is an unofficial project and is not affiliated with or endorsed by Anthropic.
+
 ## Features
 
 - **Local-first**: Works with any OpenAI-compatible local LLM server
@@ -15,7 +17,7 @@ A local-first AI coding agent powered by local LLMs via OpenAI-compatible APIs (
 
 ```bash
 # Clone the repository
-git clone https://github.com/youruser/local-claude-code.git
+git clone https://github.com/yamadan96/local-claude-code.git
 cd local-claude-code
 
 # Install with uv
@@ -133,14 +135,14 @@ allow_outside_cwd = false
 | Mode | Behavior |
 |---|---|
 | `ask` (default) | Prompts `[y/N]` before write_file, edit_file, and bash. Default deny. |
-| `auto` | Allows all tool executions without prompting. Sandbox still enforced. |
+| `auto` | Allows all tool executions without prompting. File tools stay confined to the workspace; `bash` does not (see Security). |
 
 ## Security
 
 - **Workspace sandbox**: All file paths are resolved and checked to stay within the working directory
 - **Symlink defense**: Symlinks are resolved before containment checks
 - **Path traversal defense**: `../` attacks are blocked by path resolution
-- **Bash cwd lock**: Shell commands always run with cwd set to workspace root
+- **Bash cwd lock**: Shell commands always start with cwd set to the workspace root. This is not a sandbox: a command can still read or write outside the workspace (e.g. absolute paths or `cd ..`), so review commands in `ask` mode and use `auto` only in trusted or disposable environments
 - **Output capping**: Tool output is truncated at 100KB to prevent memory issues
 - **Timeouts**: Shell commands have a configurable timeout (default 30s, max 300s)
 
@@ -202,4 +204,4 @@ uv run ruff format --check .
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
