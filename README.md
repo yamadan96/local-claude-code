@@ -135,14 +135,14 @@ allow_outside_cwd = false
 | Mode | Behavior |
 |---|---|
 | `ask` (default) | Prompts `[y/N]` before write_file, edit_file, and bash. Default deny. |
-| `auto` | Allows all tool executions without prompting. Sandbox still enforced. |
+| `auto` | Allows all tool executions without prompting. File tools stay confined to the workspace; `bash` does not (see Security). |
 
 ## Security
 
 - **Workspace sandbox**: All file paths are resolved and checked to stay within the working directory
 - **Symlink defense**: Symlinks are resolved before containment checks
 - **Path traversal defense**: `../` attacks are blocked by path resolution
-- **Bash cwd lock**: Shell commands always run with cwd set to workspace root
+- **Bash cwd lock**: Shell commands always start with cwd set to the workspace root. This is not a sandbox: a command can still read or write outside the workspace (e.g. absolute paths or `cd ..`), so review commands in `ask` mode and use `auto` only in trusted or disposable environments
 - **Output capping**: Tool output is truncated at 100KB to prevent memory issues
 - **Timeouts**: Shell commands have a configurable timeout (default 30s, max 300s)
 
