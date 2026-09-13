@@ -15,3 +15,11 @@ build/
 
 # OS
 .DS_Store
+
+# AI agent working files (not part of the published project)
+.claude/
+.codex/
+.gemini/
+CLAUDE.md
+AGENTS.md
+GEMINI.md

@@ -177,6 +177,44 @@ class TestOpenAICompatProvider:
         assert response.tool_calls is not None
         assert "_raw" in response.tool_calls[0].arguments
 
+    def test_non_dict_tool_call_entries_are_skipped(self) -> None:
+        """Malformed entries from weak servers are ignored instead of crashing."""
+        tool_calls: list[Any] = [
+            "garbage",
+            {"id": "call_bad", "type": "function", "function": "read_file"},
+            {
+                "id": "call_ok",
+                "type": "function",
+                "function": {"name": "glob", "arguments": '{"pattern": "*.py"}'},
+            },
+        ]
+        body = _make_mock_response(tool_calls=tool_calls)
+        transport = _create_transport(body)
+        client = httpx.Client(transport=transport)
+        provider = OpenAICompatProvider(
+            base_url="http://fake:11434/v1",
+            model="test",
+            http_client=client,
+        )
+        request = ChatRequest(messages=[{"role": "user", "content": "find py"}])
+        response = provider.complete(request)
+        assert response.tool_calls is not None
+        assert [call.id for call in response.tool_calls] == ["call_ok"]
+
+    def test_only_malformed_tool_calls_returns_none(self) -> None:
+        body = _make_mock_response(content="hi", tool_calls=["garbage"])
+        transport = _create_transport(body)
+        client = httpx.Client(transport=transport)
+        provider = OpenAICompatProvider(
+            base_url="http://fake:11434/v1",
+            model="test",
+            http_client=client,
+        )
+        request = ChatRequest(messages=[{"role": "user", "content": "hi"}])
+        response = provider.complete(request)
+        assert response.content == "hi"
+        assert response.tool_calls is None
+
     def test_api_key_sent_in_header(self) -> None:
         """When api_key is set, Authorization header should be sent."""
         received_headers: dict[str, str] = {}

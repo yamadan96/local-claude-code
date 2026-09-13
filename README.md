@@ -1,5 +1,9 @@
 # local-claude-code (lcc)
 
+[![CI](https://github.com/yamadan96/local-claude-code/actions/workflows/ci.yml/badge.svg)](https://github.com/yamadan96/local-claude-code/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-3776AB)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 A local-first AI coding agent powered by local LLMs via OpenAI-compatible APIs (Ollama, LM Studio, vLLM).
 
 > This is an unofficial project and is not affiliated with or endorsed by Anthropic.

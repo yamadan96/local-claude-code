@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -28,6 +29,10 @@ class PermissionDecision:
 
     allowed: bool
     reason: str = ""
+
+
+# Callback that asks the user (or a test stub) whether an action is allowed
+PromptFunction = Callable[[PermissionRequest], PermissionDecision]
 
 
 # Tools that always require permission in ask mode
@@ -77,10 +82,6 @@ class PermissionManager:
     def is_privileged(self, tool_name: str) -> bool:
         """Check if a tool requires permission in ask mode."""
         return tool_name in PRIVILEGED_TOOLS
-
-
-# Type alias for prompt function
-PromptFunction = type[None]  # placeholder; actual type below
 
 
 def _default_prompt(action: PermissionRequest) -> PermissionDecision:

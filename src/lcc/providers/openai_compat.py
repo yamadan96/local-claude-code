@@ -168,7 +168,12 @@ class OpenAICompatProvider:
 
         result: list[ToolCall] = []
         for i, call in enumerate(raw_calls):
+            # Weak servers sometimes emit non-object entries; skip them
+            if not isinstance(call, dict):
+                continue
             func = call.get("function", {})
+            if not isinstance(func, dict):
+                continue
             name = func.get("name", "")
             raw_args = func.get("arguments", "{}")
             call_id = call.get("id", f"call_{i}")

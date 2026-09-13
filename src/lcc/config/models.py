@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 
+# Single source of truth for the enum; re-exported here for config users
+from lcc.safety.permissions import PermissionMode
 
-class PermissionMode(StrEnum):
-    """Permission modes for tool execution."""
-
-    ASK = "ask"
-    AUTO = "auto"
-
+__all__ = ["AppConfig", "PermissionMode"]
 
 DEFAULT_MODEL = "qwen2.5-coder:14b"
 DEFAULT_BASE_URL = "http://localhost:11434/v1"
