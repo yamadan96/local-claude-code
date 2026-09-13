@@ -10,6 +10,7 @@ from rich.markdown import Markdown
 from lcc import __version__
 from lcc.agent.loop import AgentRunner
 from lcc.config.models import AppConfig
+from lcc.safety.permissions import PermissionManager
 from lcc.slash_commands import SlashCommandDispatcher
 from lcc.tools.registry import ToolRegistry
 
@@ -23,6 +24,7 @@ class ReplSession:
         provider: Any,
         runner: AgentRunner,
         registry: ToolRegistry,
+        permissions: PermissionManager | None = None,
     ) -> None:
         self._config = config
         self._provider = provider
@@ -30,7 +32,11 @@ class ReplSession:
         self._registry = registry
         self._console = Console()
         self._slash = SlashCommandDispatcher(
-            config=config, runner=runner, registry=registry
+            config=config,
+            runner=runner,
+            registry=registry,
+            provider=provider,
+            permissions=permissions,
         )
 
     def run(self) -> int:

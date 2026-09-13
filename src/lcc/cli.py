@@ -13,7 +13,7 @@ from lcc.agent.messages import ConversationState
 from lcc.config.loader import load_config
 from lcc.config.models import PermissionMode
 from lcc.providers.openai_compat import OpenAICompatProvider
-from lcc.safety.permissions import PermissionManager, auto_approve
+from lcc.safety.permissions import PermissionManager
 from lcc.safety.sandbox import WorkspaceSandbox
 from lcc.tools.base import ToolExecutionContext
 from lcc.tools.registry import ToolRegistry
@@ -124,9 +124,9 @@ def main(argv: list[str] | None = None) -> int:
     workspace_root = Path(config.cwd).resolve()
     sandbox = WorkspaceSandbox(workspace_root, allow_outside=config.allow_outside_cwd)
 
-    perm_mode = PermissionMode(config.permission_mode)
-    prompt_fn = auto_approve if perm_mode == PermissionMode.AUTO else None
-    permissions = PermissionManager(mode=perm_mode, prompt_fn=prompt_fn)
+    # Always keep the interactive prompt: auto mode already allows everything
+    # before the prompt is consulted, and /permission ask must be able to prompt.
+    permissions = PermissionManager(mode=PermissionMode(config.permission_mode))
 
     tool_ctx = ToolExecutionContext(sandbox=sandbox, permissions=permissions)
 
@@ -157,7 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         return _run_oneshot(runner, args.prompt)
 
     # REPL mode
-    return _run_repl(config, provider, runner, registry)
+    return _run_repl(config, provider, runner, registry, permissions)
 
 
 def _run_oneshot(runner: AgentRunner, prompt: str) -> int:
@@ -176,7 +176,7 @@ def _run_oneshot(runner: AgentRunner, prompt: str) -> int:
     return 0
 
 
-def _run_repl(config, provider, runner, registry) -> int:
+def _run_repl(config, provider, runner, registry, permissions) -> int:
     """Launch the interactive REPL."""
     from lcc.repl import ReplSession
 
@@ -185,5 +185,6 @@ def _run_repl(config, provider, runner, registry) -> int:
         provider=provider,
         runner=runner,
         registry=registry,
+        permissions=permissions,
     )
     return session.run()
