@@ -2,6 +2,8 @@
 
 A local-first AI coding agent powered by local LLMs via OpenAI-compatible APIs (Ollama, LM Studio, vLLM).
 
+> This is an unofficial project and is not affiliated with or endorsed by Anthropic.
+
 ## Features
 
 - **Local-first**: Works with any OpenAI-compatible local LLM server
@@ -15,7 +17,7 @@ A local-first AI coding agent powered by local LLMs via OpenAI-compatible APIs (
 
 ```bash
 # Clone the repository
-git clone https://github.com/youruser/local-claude-code.git
+git clone https://github.com/yamadan96/local-claude-code.git
 cd local-claude-code
 
 # Install with uv
@@ -202,4 +204,4 @@ uv run ruff format --check .
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
